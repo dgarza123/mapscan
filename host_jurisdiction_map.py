@@ -1,56 +1,62 @@
 import streamlit as st
 import pandas as pd
 import folium
-from folium.plugins import MarkerCluster
-from streamlit_folium import st_folium
+from streamlit_folium import folium_static
 
-# -------------------------------
-# 🚨 Embedded Sample Data
-# -------------------------------
-data = [
-    {"URL": "https://recorder.maricopa.gov", "Domain": "recorder.maricopa.gov", "IP": "104.18.36.57", "Hosting Org": "CLOUDFLARENET", "ASN": "13335", "Country": "None", "Type": "Recorder", "Latitude": 37.751, "Longitude": -97.822, "Jurisdiction Flag": "⚠️ Non-US"},
-    {"URL": "https://tulsigabbard.com", "Domain": "tulsigabbard.com", "IP": "104.21.64.1", "Hosting Org": "CLOUDFLARENET", "ASN": "13335", "Country": "None", "Type": "Public Figure", "Latitude": 37.751, "Longitude": -97.822, "Jurisdiction Flag": "⚠️ Non-US"},
-    {"URL": "https://arapahoe.co.publicsearch.us/", "Domain": "arapahoe.co.publicsearch.us", "IP": "35.247.2.99", "Hosting Org": "GOOGLE-CLOUD", "ASN": "396982", "Country": "None", "Type": "Recorder", "Latitude": 37.751, "Longitude": -97.822, "Jurisdiction Flag": "⚠️ Non-US"},
-    {"URL": "http://jimspss1.courts.state.hi.us:8080", "Domain": "jimspss1.courts.state.hi.us", "IP": "162.221.245.181", "Hosting Org": "STATE-OF-HAWAII", "ASN": "62712", "Country": "None", "Type": "Court", "Latitude": 21.307, "Longitude": -157.858, "Jurisdiction Flag": "⚠️ Non-US"},
-    {"URL": "https://bocdataext.hi.wcicloud.com", "Domain": "bocdataext.hi.wcicloud.com", "IP": "20.47.116.33", "Hosting Org": "MSFT", "ASN": "8069", "Country": "None", "Type": "Recorder", "Latitude": 47.6097, "Longitude": -122.3331, "Jurisdiction Flag": "⚠️ Non-US"},
-    {"URL": "https://loandepot.com", "Domain": "loandepot.com", "IP": "104.18.24.94", "Hosting Org": "CLOUDFLARENET", "ASN": "13335", "Country": "None", "Type": "Mortgage", "Latitude": 33.7175, "Longitude": -117.8311, "Jurisdiction Flag": "⚠️ Non-US"},
+# Extended dataset with subdomains from publicsearch.us and kofile.com
+# Note: Coordinates are approximated for visualization purposes
+
+full_data = [
+    {"Domain": "govos.com", "Category": "recorder", "IP": "141.193.213.20", "Org": "WPENG", "ASN": "209242", "Flag": "⚠️ Non-US", "Lat": 32.7767, "Lon": -96.7970},
+    {"Domain": "publicsearch.us", "Category": "recorder", "IP": "35.247.2.99", "Org": "GOOGLE-CLOUD", "ASN": "396982", "Flag": "⚠️ Non-US", "Lat": 40.7128, "Lon": -74.0060},
+    {"Domain": "tylertech.com", "Category": "recorder", "IP": "3.82.237.29", "Org": "AMAZON-IAD", "ASN": "14618", "Flag": "⚠️ Non-US", "Lat": 38.9072, "Lon": -77.0369},
+    {"Domain": "kofile.com", "Category": "recorder", "IP": "104.196.199.136", "Org": "GOOGLE-CLOUD", "ASN": "396982", "Flag": "⚠️ Non-US", "Lat": 30.2672, "Lon": -97.7431},
+    {"Domain": "fnf.com", "Category": "mortgage", "IP": "172.200.144.121", "Org": "UK-MICROSOFT-20000324", "ASN": "8075", "Flag": "⚠️ Non-US", "Lat": 51.509865, "Lon": -0.118092},
+
+    # Example subdomains added
+    {"Domain": "bexartx.search.kofile.com", "Category": "recorder", "IP": "104.42.21.90", "Org": "KOFILE", "ASN": "???", "Flag": "⚠️ Non-US", "Lat": 29.4241, "Lon": -98.4936},  # San Antonio
+    {"Domain": "freestonetx.search.kofile.com", "Category": "recorder", "IP": "104.42.21.90", "Org": "KOFILE", "ASN": "???", "Flag": "⚠️ Non-US", "Lat": 31.7246, "Lon": -96.1653},  # Freestone TX
+    {"Domain": "clerk.boulder.co.publicsearch.us", "Category": "recorder", "IP": "34.83.72.72", "Org": "GOOGLE-CLOUD", "ASN": "396982", "Flag": "⚠️ Non-US", "Lat": 40.015, "Lon": -105.2705},
+    {"Domain": "admin.kennebec.me.publicsearch.us", "Category": "recorder", "IP": "34.83.72.72", "Org": "GOOGLE-CLOUD", "ASN": "396982", "Flag": "⚠️ Non-US", "Lat": 44.4334, "Lon": -69.7179},
+    {"Domain": "admin.franklin.oh.publicsearch.us", "Category": "recorder", "IP": "34.83.72.72", "Org": "GOOGLE-CLOUD", "ASN": "396982", "Flag": "⚠️ Non-US", "Lat": 39.9612, "Lon": -82.9988},
 ]
 
-df = pd.DataFrame(data)
+category_colors = {
+    "recorder": "blue",
+    "mortgage": "red",
+    "court": "green",
+    "public figure": "orange",
+    "pdf software": "purple"
+}
 
-# -------------------------------
-# 🌍 Create Map
-# -------------------------------
-st.title("🌐 Hosting Jurisdiction Map")
-st.markdown("Shows domains of courts, recorders, and mortgage companies with hosting geolocation and flags for ⚠️ non-U.S. jurisdiction.")
+st.title("⚖️ Website Hosting Location Map")
+st.markdown("This map displays recorder, court, and mortgage-related sites and their server hosting locations.")
 
-map_center = [37.5, -98.0]
-m = folium.Map(location=map_center, zoom_start=4)
-marker_cluster = MarkerCluster().add_to(m)
+# Create Folium map
+m = folium.Map(location=[39.8283, -98.5795], zoom_start=4)
 
-# 🎨 Marker color by category
-def get_marker_color(category):
-    return {
-        "Court": "purple",
-        "Recorder": "red",
-        "Mortgage": "blue",
-        "Public Figure": "orange"
-    }.get(category, "gray")
+for entry in full_data:
+    folium.CircleMarker(
+        location=[entry["Lat"], entry["Lon"]],
+        radius=6,
+        color=category_colors.get(entry["Category"], "gray"),
+        fill=True,
+        fill_opacity=0.7,
+        popup=f"{entry['Domain']}<br>Org: {entry['Org']}<br>ASN: {entry['ASN']}<br>Flag: {entry['Flag']}",
+    ).add_to(m)
 
-for _, row in df.iterrows():
-    folium.Marker(
-        location=[row["Latitude"], row["Longitude"]],
-        popup=folium.Popup(f"""<b>{row['Domain']}</b><br>
-            Type: {row['Type']}<br>
-            IP: {row['IP']}<br>
-            Host: {row['Hosting Org']}<br>
-            ASN: {row['ASN']}<br>
-            {row['Jurisdiction Flag']}""", max_width=250),
-        icon=folium.Icon(color=get_marker_color(row["Type"]))
-    ).add_to(marker_cluster)
+# Add map legend manually using HTML
+legend_html = '''
+<div style="position: fixed; bottom: 50px; left: 50px; width: 180px; height: 150px; 
+     background-color: white; border:2px solid grey; z-index:9999; font-size:14px;">
+     &nbsp;<b>Legend</b><br>
+     &nbsp;<span style='color:blue'>&#11044;</span> Recorder<br>
+     &nbsp;<span style='color:red'>&#11044;</span> Mortgage<br>
+     &nbsp;<span style='color:green'>&#11044;</span> Court<br>
+     &nbsp;<span style='color:orange'>&#11044;</span> Public Figure<br>
+     &nbsp;<span style='color:purple'>&#11044;</span> PDF Software
+</div>
+'''
+m.get_root().html.add_child(folium.Element(legend_html))
 
-st_folium(m, width=800, height=600)
-
-# 📁 Optional download
-csv = df.to_csv(index=False)
-st.download_button("⬇️ Download Data as CSV", csv, "hosting_map_data.csv", "text/csv")
+folium_static(m)
