@@ -32,9 +32,18 @@ def load_csv(file_id):
         gdown.download(f"https://drive.google.com/uc?id={file_id}", tmp_path, quiet=False)
     return pd.read_csv(tmp_path)
 
-df_2020 = load_csv(FILE_IDS["2020"])
-df_2023 = load_csv(FILE_IDS["2023"])
-df_2024 = load_csv(FILE_IDS["2024"])
+# === Try loading all CSVs safely ===
+try:
+    df_2020 = load_csv(FILE_IDS["2020"])
+    df_2023 = load_csv(FILE_IDS["2023"])
+    df_2024 = load_csv(FILE_IDS["2024"])
+except Exception as e:
+    st.error(f"❌ Failed to load one or more datasets: {e}")
+    st.stop()
+
+if df_2020.empty or df_2023.empty or df_2024.empty:
+    st.error("❌ One of the datasets is empty or unreadable. Check that the CSVs were downloaded correctly.")
+    st.stop()
 
 # === Debug: Show column headers ===
 st.markdown("### 🧪 Columns in 2020 CSV:")
