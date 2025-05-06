@@ -30,16 +30,17 @@ if df_2020.empty or df_2023.empty or df_2024.empty:
 # === Show column headers and types for debug ===
 st.markdown("### 🧪 Columns in 2020 CSV:")
 st.write("🧾 Raw columns:", df_2020.columns.tolist())
-st.write("🔎 Column types:", [type(c) for c in df_2020.columns])
+st.write("🔎 Column types:", [str(type(c)) for c in df_2020.columns])
 
-# === Bulletproof column detection ===
+# === Safe column detection ===
 def detect_column(df, keywords):
     for col in df.columns:
-        try:
-            if isinstance(col, str) and any(kw in col.lower() for kw in keywords):
+        if not isinstance(col, str):
+            continue
+        lower_col = col.lower()
+        for kw in keywords:
+            if kw in lower_col:
                 return col
-        except Exception as e:
-            st.warning(f"⚠️ Skipped invalid column: {col} ({e})")
     return None
 
 tmk_col = detect_column(df_2020, ["tmk"])
