@@ -12,9 +12,9 @@ st.title("📍 Map 1: Hawaii Missing TMKs (2020 → 2023 → 2024)")
 st.markdown("""
 This interactive map shows land parcels (TMKs) that disappeared or reappeared across three datasets:
 
-- 🟥 **Disappeared after 2020** (missing in 2023 and 2024)
-- 🟧 **Disappeared after 2023** (present in 2023, gone in 2024)
-- 🟩 **Reappeared in 2024** (missing in 2023, returned in 2024)
+- 🟥 **Disappeared after 2020** (missing in 2023 and 2024)  
+- 🟧 **Disappeared after 2023** (present in 2023, gone in 2024)  
+- 🟩 **Reappeared in 2024** (missing in 2023, returned in 2024)  
 """)
 
 # === Google Drive file IDs ===
@@ -31,26 +31,36 @@ def load_csv(file_id):
         gdown.download(f"https://drive.google.com/uc?id={file_id}", tmp_path, quiet=False)
     return pd.read_csv(tmp_path)
 
-# Load CSVs
+# Load data
 df_2020 = load_csv(FILE_IDS["2020"])
 df_2023 = load_csv(FILE_IDS["2023"])
 df_2024 = load_csv(FILE_IDS["2024"])
 
-# Detect relevant columns
-tmk_col = next(c for c in df_2020.columns if "tmk" in c.lower())
-lat_col = next(c for c in df_2020.columns if "lat" in c.lower())
-lon_col = next(c for c in df_2020.columns if "lon" in c.lower())
+# --- Column detection with fallback ---
+def detect_column(df, keywords):
+    for col in df.columns:
+        if any(kw in col.lower() for kw in keywords):
+            return col
+    return None
+
+tmk_col = detect_column(df_2020, ["tmk"])
+lat_col = detect_column(df_2020, ["lat", "latitude", "y"])
+lon_col = detect_column(df_2020, ["lon", "lng", "longitude", "x"])
+
+if not all([tmk_col, lat_col, lon_col]):
+    st.error(f"❌ Could not detect TMK, lat, and lon columns.\nDetected: TMK=`{tmk_col}`, lat=`{lat_col}`, lon=`{lon_col}`")
+    st.stop()
 
 # TMK sets
 set_2020 = set(df_2020[tmk_col])
 set_2023 = set(df_2023[tmk_col])
 set_2024 = set(df_2024[tmk_col])
 
-# Logic
 gone_after_2020 = set_2020 - set_2023 - set_2024
 gone_after_2023 = set_2023 - set_2024
 reappeared_2024 = (set_2020 - set_2023) & set_2024
 
+# Build labeled DataFrame
 def tag_changes(df, ids, label):
     sub = df[df[tmk_col].isin(ids)].copy()
     sub["change"] = label
