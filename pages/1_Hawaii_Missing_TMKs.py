@@ -27,15 +27,19 @@ if df_2020.empty or df_2023.empty or df_2024.empty:
     st.error("❌ One of the datasets is empty. Ensure all three CSV files are in the app folder and not corrupted.")
     st.stop()
 
-# === Show column headers for debug ===
+# === Show column headers and types for debug ===
 st.markdown("### 🧪 Columns in 2020 CSV:")
-st.write(df_2020.columns.tolist())
+st.write("🧾 Raw columns:", df_2020.columns.tolist())
+st.write("🔎 Column types:", [type(c) for c in df_2020.columns])
 
-# === Safe column detection ===
+# === Bulletproof column detection ===
 def detect_column(df, keywords):
     for col in df.columns:
-        if pd.notnull(col) and isinstance(col, str) and any(kw in col.lower() for kw in keywords):
-            return col
+        try:
+            if isinstance(col, str) and any(kw in col.lower() for kw in keywords):
+                return col
+        except Exception as e:
+            st.warning(f"⚠️ Skipped invalid column: {col} ({e})")
     return None
 
 tmk_col = detect_column(df_2020, ["tmk"])
@@ -53,7 +57,6 @@ if not lon_col:
 
 if missing:
     st.error(f"❌ Missing required columns: {', '.join(missing)}. Please check the CSV headers.")
-    st.write("Detected columns:", df_2020.columns.tolist())
     st.stop()
 
 # === Set comparison logic ===
