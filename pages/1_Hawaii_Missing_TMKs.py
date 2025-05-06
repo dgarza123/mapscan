@@ -32,15 +32,14 @@ st.markdown("### 🧪 Columns in 2020 CSV:")
 st.write("🧾 Raw columns:", df_2020.columns.tolist())
 st.write("🔎 Column types:", [str(type(c)) for c in df_2020.columns])
 
-# === Safe column detection ===
+# === Fully safe column detection ===
 def detect_column(df, keywords):
     for col in df.columns:
-        if not isinstance(col, str):
-            continue
-        lower_col = col.lower()
-        for kw in keywords:
-            if kw in lower_col:
-                return col
+        if isinstance(col, str):
+            lower_col = col.lower()
+            for kw in keywords:
+                if kw in lower_col:
+                    return col
     return None
 
 tmk_col = detect_column(df_2020, ["tmk"])
