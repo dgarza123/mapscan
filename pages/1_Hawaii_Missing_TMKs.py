@@ -1,5 +1,3 @@
-# 1_Hawaii_Missing_TMKs.py
-
 import streamlit as st
 import pandas as pd
 import pydeck as pdk
@@ -29,7 +27,7 @@ if df_2020.empty or df_2023.empty or df_2024.empty:
     st.error("❌ One of the datasets is empty. Ensure all three CSV files are in the app folder and not corrupted.")
     st.stop()
 
-# === Show column headers ===
+# === Show column headers for debug ===
 st.markdown("### 🧪 Columns in 2020 CSV:")
 st.write(df_2020.columns.tolist())
 
@@ -44,16 +42,21 @@ tmk_col = detect_column(df_2020, ["tmk"])
 lat_col = detect_column(df_2020, ["lat", "latitude", "y"])
 lon_col = detect_column(df_2020, ["lon", "lng", "longitude", "x"])
 
-st.markdown("### 📌 Detected Columns")
-st.write("TMK column:", tmk_col)
-st.write("Latitude column:", lat_col)
-st.write("Longitude column:", lon_col)
+# === Check for missing columns ===
+missing = []
+if not tmk_col:
+    missing.append("TMK")
+if not lat_col:
+    missing.append("Latitude")
+if not lon_col:
+    missing.append("Longitude")
 
-if not all([tmk_col, lat_col, lon_col]):
-    st.error("❌ Column detection failed. Ensure each CSV has TMK, Latitude, and Longitude columns.")
+if missing:
+    st.error(f"❌ Missing required columns: {', '.join(missing)}. Please check the CSV headers.")
+    st.write("Detected columns:", df_2020.columns.tolist())
     st.stop()
 
-# === Compare TMKs ===
+# === Set comparison logic ===
 set_2020 = set(df_2020[tmk_col])
 set_2023 = set(df_2023[tmk_col])
 set_2024 = set(df_2024[tmk_col])
@@ -62,7 +65,7 @@ gone_after_2020 = set_2020 - set_2023 - set_2024
 gone_after_2023 = set_2023 - set_2024
 reappeared_2024 = (set_2020 - set_2023) & set_2024
 
-# === Label and merge map data ===
+# === Tag records with change label ===
 def tag_changes(df, ids, label):
     sub = df[df[tmk_col].isin(ids)].copy()
     sub["change"] = label
