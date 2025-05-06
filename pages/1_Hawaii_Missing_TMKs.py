@@ -36,10 +36,10 @@ df_2020 = load_csv(FILE_IDS["2020"])
 df_2023 = load_csv(FILE_IDS["2023"])
 df_2024 = load_csv(FILE_IDS["2024"])
 
-# --- Column detection with fallback ---
+# --- Robust column detection ---
 def detect_column(df, keywords):
     for col in df.columns:
-        if any(kw in col.lower() for kw in keywords):
+        if isinstance(col, str) and any(kw in col.lower() for kw in keywords):
             return col
     return None
 
@@ -48,7 +48,7 @@ lat_col = detect_column(df_2020, ["lat", "latitude", "y"])
 lon_col = detect_column(df_2020, ["lon", "lng", "longitude", "x"])
 
 if not all([tmk_col, lat_col, lon_col]):
-    st.error(f"❌ Could not detect TMK, lat, and lon columns.\nDetected: TMK=`{tmk_col}`, lat=`{lat_col}`, lon=`{lon_col}`")
+    st.error(f"❌ Column detection failed. Found: TMK = {tmk_col}, lat = {lat_col}, lon = {lon_col}")
     st.stop()
 
 # TMK sets
@@ -60,7 +60,7 @@ gone_after_2020 = set_2020 - set_2023 - set_2024
 gone_after_2023 = set_2023 - set_2024
 reappeared_2024 = (set_2020 - set_2023) & set_2024
 
-# Build labeled DataFrame
+# Tag change labels
 def tag_changes(df, ids, label):
     sub = df[df[tmk_col].isin(ids)].copy()
     sub["change"] = label
@@ -80,13 +80,14 @@ st.markdown(f"""
 - 🟩 Reappeared in 2024: **{len(reappeared_2024):,}**
 """)
 
-# Map layers
+# Map colors
 color_map = {
     "Disappeared after 2020": [255, 0, 0, 150],
     "Disappeared after 2023": [255, 140, 0, 150],
     "Reappeared in 2024": [0, 200, 0, 150],
 }
 
+# Build map layers
 layers = [
     pdk.Layer(
         "ScatterplotLayer",
@@ -95,9 +96,11 @@ layers = [
         get_radius=30,
         get_fill_color=color,
         pickable=True,
-    ) for label, color in color_map.items()
+    )
+    for label, color in color_map.items()
 ]
 
+# Render pydeck map
 st.pydeck_chart(pdk.Deck(
     map_style="mapbox://styles/mapbox/light-v10",
     initial_view_state=pdk.ViewState(latitude=21.5, longitude=-157.8, zoom=8.5),
@@ -105,4 +108,5 @@ st.pydeck_chart(pdk.Deck(
     tooltip={"text": "{change}"}
 ))
 
+# Download CSV
 st.download_button("⬇️ Download CSV", df_map.to_csv(index=False), "missing_tmks_2020_2024.csv")
