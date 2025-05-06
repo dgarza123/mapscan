@@ -36,7 +36,7 @@ df_2020 = load_csv(FILE_IDS["2020"])
 df_2023 = load_csv(FILE_IDS["2023"])
 df_2024 = load_csv(FILE_IDS["2024"])
 
-# === Show raw column headers for debugging ===
+# === Debug: Show column headers ===
 st.markdown("### 🧪 Columns in 2020 CSV:")
 st.write(df_2020.columns.tolist())
 
